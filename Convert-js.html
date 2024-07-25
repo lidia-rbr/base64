@@ -1,0 +1,63 @@
+<script>
+  $(document).ready(function() {
+    const parsedData = JSON.parse(data);
+    let nbOfUrls = parsedData.urls.length;
+    // Intialize with first url
+    $("#img").attr("src", parsedData.urls[0]);
+
+    // Track the current index of processed images
+    let processedCount = 0;
+
+    /**
+     * Update modal with current image and advancement
+     * @param {int} index
+    */
+    function updateStatus(index) {
+      // Update the progress bar
+      $("#progress").css("width", `${(index + 1) / nbOfUrls * 100}%`);
+      // Update the image source
+      $("#img").attr("src", parsedData.urls[index]);
+    }
+
+    /**
+     * Update modal with current image and advancement
+     * @param {int} index
+    */
+    function processImage(index) {
+      if (index >= nbOfUrls) {
+        google.script.host.close();
+        return; // Stop if all images are processed
+      }
+
+      toDataURL(parsedData.urls[index], async function(base64Url) {
+        await google.script.run.withSuccessHandler(function() {
+          updateStatus(index);
+          processedCount++;
+          processImage(processedCount);
+        }).printRes(base64Url, index);
+      });
+    }
+
+    // Start processing images
+    processImage(0);
+  });
+
+    /**
+     * Process given URL and returns base 64 result
+     * @param {url} string
+     * @param {callback} function
+    */
+  function toDataURL(url, callback) {
+    let xhr = new XMLHttpRequest();
+    xhr.onload = function() {
+      let reader = new FileReader();
+      reader.onloadend = function() {
+        callback(reader.result);
+      }
+      reader.readAsDataURL(xhr.response);
+    };
+    xhr.open('GET', url);
+    xhr.responseType = 'blob';
+    xhr.send();
+  }
+</script>
